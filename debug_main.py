@@ -10,7 +10,7 @@ if __name__ == "__main__":
     # print(get_settings().mongo_db.mongo_dsn)
     nest_asyncio.apply()
     config = uvicorn.Config(
-        "celery_app:create_celery_app",
+        "celery_app:create_app",
         factory=True,
         host="0.0.0.0",
         port=8081,

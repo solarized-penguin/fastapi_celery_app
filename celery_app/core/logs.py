@@ -1,9 +1,10 @@
 import logging
-from .config import get_settings
-from logging_loki import LokiQueueHandler
 from multiprocessing import Queue
-from celery.utils.log import get_task_logger
 
+from celery.utils.log import get_task_logger
+from logging_loki import LokiQueueHandler
+
+from .config import get_settings
 
 loki_handler = LokiQueueHandler(
     Queue(-1),

@@ -1,7 +1,6 @@
 from typing import Annotated, Any
 
 from fastapi_mail import MessageType
-from jinja2 import Environment
 from pydantic import EmailStr
 from sqlmodel import Field
 from starlette.requests import Request
@@ -12,7 +11,6 @@ from db import EmailBase
 
 
 def _create_jinja_templates() -> Jinja2Templates:
-
     def _app_context(request: Request) -> dict[str, Any]:
         return {"app": request.app}
 

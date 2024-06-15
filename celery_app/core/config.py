@@ -1,7 +1,7 @@
 from datetime import timedelta
 from functools import lru_cache
 from pathlib import Path
-from typing import Literal, Any
+from typing import Literal
 
 from fastapi_mail import ConnectionConfig
 from jinja2 import Environment, FileSystemLoader

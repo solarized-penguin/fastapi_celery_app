@@ -1,5 +1,5 @@
-import json
 from celery import Celery
+
 from core import get_logger
 from core import get_settings
 

@@ -1,11 +1,9 @@
 from contextlib import asynccontextmanager
-from contextlib import asynccontextmanager
-from typing import AsyncGenerator, Any, Annotated
+from typing import AsyncGenerator, Any
 
 from beanie import init_beanie
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorClientSession
-
 
 from core import get_settings
 from .models import EmailOutboxMessage
