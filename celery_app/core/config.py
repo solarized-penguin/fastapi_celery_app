@@ -1,10 +1,11 @@
 from datetime import timedelta
 from functools import lru_cache
 from pathlib import Path
-from typing import Literal
+from typing import Literal, Any
 
 from fastapi_mail import ConnectionConfig
-from pydantic import MongoDsn, SecretStr, Field, EmailStr, ConfigDict
+from jinja2 import Environment, FileSystemLoader
+from pydantic import MongoDsn, SecretStr, Field, EmailStr, ConfigDict, HttpUrl
 from pydantic_settings import SettingsConfigDict, BaseSettings
 
 _ROOT_DIR = Path(__file__).parent.parent
@@ -19,6 +20,9 @@ assert _MAIL_TEMPLATES_DIR.exists() and _MAIL_TEMPLATES_DIR.is_dir()
 _IMAGES_DIR = _STATIC_DIR / "images"
 assert _IMAGES_DIR.exists() and _IMAGES_DIR.is_dir()
 
+_FONTS_DIR = _STATIC_DIR / "fonts"
+assert _FONTS_DIR.exists() and _FONTS_DIR.is_dir()
+
 
 class BaseConfig(BaseSettings):
     model_config = SettingsConfigDict(
@@ -26,7 +30,15 @@ class BaseConfig(BaseSettings):
     )
 
 
-class PathsSettings(BaseConfig):
+class ResourceSettings(BaseConfig, env_prefix="CELERY_RESOURCES_"):
+    jinja_templates_autoescape: bool
+    jinja_templates_auto_reload: bool
+    bookstore_api_url: HttpUrl
+    base_url: HttpUrl
+    jinja_templates_enable_async: bool
+    jinja_templates_optimized: bool
+    jinja_templates_cache_size: int
+
     @property
     def root_dir(self) -> Path:
         return _ROOT_DIR
@@ -42,6 +54,35 @@ class PathsSettings(BaseConfig):
     @property
     def images_dir(self) -> Path:
         return _IMAGES_DIR
+
+    @property
+    def fonts_dir(self) -> Path:
+        return _FONTS_DIR
+
+    @property
+    def jetbrains_mono_regular_font_url(self) -> HttpUrl:
+        return HttpUrl(f"{self.base_url}/static/fonts/JetBrainsMono-Regular.woff2")
+
+    @property
+    def jetbrains_mono_extra_bold_font_url(self) -> HttpUrl:
+        return HttpUrl(f"{self.base_url}/static/fonts/JetBrainsMono-ExtraBold.woff2")
+
+    @property
+    def bookstore_mail_logo_url(self) -> HttpUrl:
+        return HttpUrl(f"{self.base_url}/static/images/logo.png")
+
+    @property
+    def jinja_env(self) -> Environment:
+        env = Environment(
+            autoescape=self.jinja_templates_autoescape,
+            auto_reload=self.jinja_templates_auto_reload,
+            optimized=self.jinja_templates_optimized,
+            enable_async=self.jinja_templates_enable_async,
+            cache_size=self.jinja_templates_cache_size,
+            loader=FileSystemLoader(searchpath=self.mail_templates_dir),
+        )
+        env.globals.update(get_settings=get_settings)
+        return env
 
 
 class LoggingSettings(BaseConfig, env_prefix="CELERY_LOGGING_"):
@@ -148,6 +189,10 @@ class ApiSettings(BaseConfig, env_prefix="CELERY_API_"):
     swagger_ui_oauth2_redirect_url: str
     include_in_schema: bool
 
+    @property
+    def base_url(self) -> HttpUrl:
+        return HttpUrl(f"http://{self.host}:{self.port}")
+
 
 class WorkersSettings(BaseConfig):
     mail: CeleryMailWorkerSettings = CeleryMailWorkerSettings()
@@ -179,7 +224,7 @@ class Settings(BaseConfig):
     logging: LoggingSettings = LoggingSettings()
     default_model_config: RouterModelsDefaultConfigSettings = RouterModelsDefaultConfigSettings()
     beanie_default_settings: BeanieDocumentsSettings = BeanieDocumentsSettings()
-    paths: PathsSettings = PathsSettings()
+    resources: ResourceSettings = ResourceSettings()
 
 
 @lru_cache

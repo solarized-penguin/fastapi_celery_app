@@ -1,10 +1,12 @@
 from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager
+from typing import AsyncGenerator, Any, Annotated
 
 from beanie import init_beanie
-from beanie.odm.documents import ClientSession
-from fastapi import FastAPI
-from pymongo.mongo_client import client_session
-from motor.motor_asyncio import AsyncIOMotorClient
+from fastapi import FastAPI, Depends
+from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorClientSession
+
+
 from core import get_settings
 from .models import EmailOutboxMessage
 
@@ -12,11 +14,8 @@ client = AsyncIOMotorClient(get_settings().mongo_db.mongo_dsn)
 celery_db = client.get_database(name=get_settings().mongo_db.path)
 
 
-@asynccontextmanager
-async def get_session():
-    async with await celery_db.client.start_session(
-        causal_consistency=get_settings().mongo_db.causal_consistency
-    ) as session:
+async def get_session() -> AsyncGenerator[AsyncIOMotorClientSession, Any]:
+    async with await client.start_session(causal_consistency=get_settings().mongo_db.causal_consistency) as session:
         yield session
 
 

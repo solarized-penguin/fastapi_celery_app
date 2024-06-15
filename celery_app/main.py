@@ -6,6 +6,7 @@ def create_app() -> FastAPI:
     from core import get_settings
     from db import db_init_lifespan
     from routers import register_routers
+    from middlewares import get_middlewares
 
     app = FastAPI(
         title=get_settings().api.title,
@@ -17,9 +18,10 @@ def create_app() -> FastAPI:
         swagger_ui_oauth2_redirect_url=get_settings().api.swagger_ui_oauth2_redirect_url,
         include_in_schema=get_settings().api.include_in_schema,
         lifespan=db_init_lifespan,
+        middleware=get_middlewares(),
     )
 
-    app.mount(path="/static", app=StaticFiles(directory=get_settings().paths.static_dir), name="static")
+    app.mount(path="/static", app=StaticFiles(directory=get_settings().resources.static_dir), name="static")
 
     register_routers(app)
 
