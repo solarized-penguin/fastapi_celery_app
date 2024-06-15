@@ -1,0 +1,62 @@
+services:
+
+  app:
+    build:
+      context: .
+    restart: unless-stopped
+    env_file:
+      - ${DOCKER_COMPOSE_APP_ENV_FILE}
+    depends_on:
+      mongo_db:
+        condition: service_started
+    ports:
+      - ${DOCKER_COMPOSE_APP_EXPOSED_PORTS}
+    command: ${DOCKER_COMPOSE_APP_START_COMMAND}
+
+  mongo_db:
+    image: mongo:${DOCKER_COMPOSE_MONGO_DB_VERSION}
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${DOCKER_COMPOSE_MONGO_DB_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${DOCKER_COMPOSE_MONGO_DB_PASSWORD}
+      MONGO_INITDB_DATABASE: ${DOCKER_COMPOSE_MONGO_DB_INITDB_DATABASE}
+      MONGODB_DATA_DIR: ${DOCKER_COMPOSE_MONGO_DB_VOLUME}
+    ports:
+      - ${DOCKER_COMPOSE_MONGO_DB_EXPOSED_PORTS}
+    volumes:
+      - mongo_data:${DOCKER_COMPOSE_MONGO_DB_VOLUME}
+
+  celery_worker:
+    build:
+      context: .
+    restart: unless-stopped
+    command: ${DOCKER_COMPOSE_CELERY_WORKER_COMMAND}
+    env_file:
+      - ${DOCKER_COMPOSE_WORKER_ENV_FILE}
+    depends_on:
+      - mongo_db
+
+  celery_beat:
+    build:
+      context: .
+    restart: unless-stopped
+    command: ${DOCKER_COMPOSE_CELERY_BEAT_COMMAND}
+    env_file:
+      - ${DOCKER_COMPOSE_CELERY_BEAT_ENV_FILE}
+    depends_on:
+      - mongo_db
+
+  flower:
+    build:
+      context: .
+    restart: unless-stopped
+    command: ${DOCKER_COMPOSE_FLOWER_COMMAND}
+    env_file:
+      - ${DOCKER_COMPOSE_FLOWER_ENV_FILE}
+    ports:
+      - ${DOCKER_COMPOSE_FLOWER_EXPOSED_PORTS}
+    depends_on:
+      - mongo_db
+
+volumes:
+  mongo_data:
