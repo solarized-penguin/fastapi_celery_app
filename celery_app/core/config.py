@@ -2,10 +2,11 @@ from datetime import timedelta
 from functools import lru_cache
 from pathlib import Path
 from typing import Literal
+from urllib.parse import urljoin
 
 from fastapi_mail import ConnectionConfig
 from jinja2 import Environment, FileSystemLoader
-from pydantic import MongoDsn, SecretStr, Field, EmailStr, ConfigDict, HttpUrl
+from pydantic import MongoDsn, SecretStr, Field, EmailStr, ConfigDict, AnyUrl
 from pydantic_settings import SettingsConfigDict, BaseSettings
 
 _ROOT_DIR = Path(__file__).parent.parent
@@ -33,8 +34,8 @@ class BaseConfig(BaseSettings):
 class ResourceSettings(BaseConfig, env_prefix="CELERY_RESOURCES_"):
     jinja_templates_autoescape: bool
     jinja_templates_auto_reload: bool
-    bookstore_api_url: HttpUrl
-    base_url: HttpUrl
+    bookstore_api_url: AnyUrl
+    base_url: AnyUrl
     jinja_templates_enable_async: bool
     jinja_templates_optimized: bool
     jinja_templates_cache_size: int
@@ -60,16 +61,16 @@ class ResourceSettings(BaseConfig, env_prefix="CELERY_RESOURCES_"):
         return _FONTS_DIR
 
     @property
-    def jetbrains_mono_regular_font_url(self) -> HttpUrl:
-        return HttpUrl(f"{self.base_url}/static/fonts/JetBrainsMono-Regular.woff2")
+    def jetbrains_mono_regular_font_url(self) -> AnyUrl:
+        return AnyUrl(urljoin(self.base_url.unicode_string(), "static/fonts/JetBrainsMono-Regular.woff2"))
 
     @property
-    def jetbrains_mono_extra_bold_font_url(self) -> HttpUrl:
-        return HttpUrl(f"{self.base_url}/static/fonts/JetBrainsMono-ExtraBold.woff2")
+    def jetbrains_mono_extra_bold_font_url(self) -> AnyUrl:
+        return AnyUrl(urljoin(self.base_url.unicode_string(), "static/fonts/JetBrainsMono-ExtraBold.woff2"))
 
     @property
-    def bookstore_mail_logo_url(self) -> HttpUrl:
-        return HttpUrl(f"{self.base_url}/static/images/logo.png")
+    def bookstore_mail_logo_url(self) -> AnyUrl:
+        return AnyUrl(urljoin(self.base_url.unicode_string(), "static/images/logo.png"))
 
     @property
     def jinja_env(self) -> Environment:
@@ -188,10 +189,6 @@ class ApiSettings(BaseConfig, env_prefix="CELERY_API_"):
     redoc_url: str
     swagger_ui_oauth2_redirect_url: str
     include_in_schema: bool
-
-    @property
-    def base_url(self) -> HttpUrl:
-        return HttpUrl(f"http://{self.host}:{self.port}")
 
 
 class WorkersSettings(BaseConfig):
