@@ -6,7 +6,7 @@ from urllib.parse import urljoin
 
 from fastapi_mail import ConnectionConfig
 from jinja2 import Environment, FileSystemLoader
-from pydantic import MongoDsn, SecretStr, Field, EmailStr, ConfigDict, AnyUrl
+from pydantic import MongoDsn, SecretStr, Field, EmailStr, ConfigDict, AnyUrl, DirectoryPath
 from pydantic_settings import SettingsConfigDict, BaseSettings
 
 _ROOT_DIR = Path(__file__).parent.parent
@@ -105,11 +105,11 @@ class MailingSettings(BaseConfig, env_prefix="CELERY_TASKS_MAILING_"):
     mail_from: EmailStr
     mail_from_name: str
     timeout: int
+    suppress_send: bool
     use_credentials: bool
     validate_certs: bool
 
-    @property
-    def connection_config(self) -> ConnectionConfig:
+    def connection_config(self, template_folder: DirectoryPath) -> ConnectionConfig:
         return ConnectionConfig(
             MAIL_USERNAME=self.username,
             MAIL_PASSWORD=self.password.get_secret_value(),
@@ -120,10 +120,11 @@ class MailingSettings(BaseConfig, env_prefix="CELERY_TASKS_MAILING_"):
             MAIL_DEBUG=self.debug,
             MAIL_FROM=self.mail_from,
             MAIL_FROM_NAME=self.mail_from_name,
-            TIMEOUT=self.timeout,
+            SUPPRESS_SEND=self.suppress_send,
             USE_CREDENTIALS=self.use_credentials,
             VALIDATE_CERTS=self.validate_certs,
-            TEMPLATE_FOLDER=self.template_folder,
+            TIMEOUT=self.timeout,
+            TEMPLATE_FOLDER=template_folder,
         )
 
 

@@ -8,7 +8,8 @@ from starlette.requests import Request
 from starlette.responses import HTMLResponse
 
 from db import get_session, EmailOutboxMessage, EmailBase
-from .models import EmailSchema, templates
+from .models import EmailSchema
+from .funcs import templates, extract_template_variables
 
 mail_router = APIRouter(
     prefix="/tasks/mail", tags=["mail"], include_in_schema=True, default_response_class=ORJSONResponse
@@ -36,13 +37,26 @@ async def all_templates() -> Annotated[list[str], ORJSONResponse]:
 
 
 @mail_router.get("/template/{name}", response_class=HTMLResponse)
-async def template_by_name(name: Annotated[str, Path(title="Template file name")], request: Request) -> HTMLResponse:
+async def template_by_name(name: Annotated[str, Path(title="Template file name")]) -> HTMLResponse:
     template = templates.get_template(name=name)
 
     if not template:
         return HTMLResponse(status_code=status.HTTP_204_NO_CONTENT, content=None)
 
-    rendered_template = await template.render_async(
-        bookstore_api_email_verification_url="http://0.0.0.0:8081/test_auth"
-    )
+    template_variables = extract_template_variables(template.name)
+
+    rendered_template = await template.render_async({k: "{{{{ {0} }}}}".format(k) for k in template_variables})
+
     return HTMLResponse(content=rendered_template, status_code=status.HTTP_200_OK, media_type=HTMLResponse.media_type)
+
+
+@mail_router.get("/template/{name}/vars", response_class=ORJSONResponse)
+async def variables_required_by_template(name: Annotated[str, Path(title="Template file name")]) -> ORJSONResponse:
+    template = templates.get_template(name=name)
+
+    if not template:
+        return HTMLResponse(status_code=status.HTTP_204_NO_CONTENT, content=None)
+
+    template_variables = extract_template_variables(template.name)
+
+    return ORJSONResponse(content={"variables to provide": template_variables}, status_code=status.HTTP_200_OK)

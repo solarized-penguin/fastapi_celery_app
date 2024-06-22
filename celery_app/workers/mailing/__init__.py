@@ -1,1 +1,1 @@
-from .mail import worker, send
+from .mail_worker import worker, send

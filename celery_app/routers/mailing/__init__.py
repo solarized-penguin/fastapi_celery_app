@@ -1,1 +1,1 @@
-from .mail import mail_router
+from .router import mail_router

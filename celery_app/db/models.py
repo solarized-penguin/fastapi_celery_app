@@ -34,9 +34,10 @@ class BaseDocument(Document):
 class EmailBase(SQLModel):
     recipients: Annotated[list[EmailStr], Field(title="List of recipients emails")]
     subject: Annotated[str, Field(title="Message subject")]
-    body_params: Annotated[dict[str, Any], Field(title="Key-value pairs used to populate template")]
+    body_params: Annotated[dict[str, Any] | None, Field(title="Key-value pairs used to populate template")]
     template_name: Annotated[
-        str, Field(title="Email template name", description="Template will be populated with data from 'body_params'")
+        str | None,
+        Field(title="Email template name", description="Template will be populated with data from 'body_params'"),
     ]
     subtype: Annotated[MessageType, Field(title="Message type")]
 
