@@ -1,5 +1,5 @@
 from datetime import datetime, UTC
-from typing import Any, Annotated
+from typing import Annotated
 
 from beanie import Document, TimeSeriesConfig, Granularity
 from fastapi_mail import MessageType
@@ -32,14 +32,10 @@ class BaseDocument(Document):
 
 
 class EmailBase(SQLModel):
-    recipients: Annotated[list[EmailStr], Field(title="List of recipients emails")]
-    subject: Annotated[str, Field(title="Message subject")]
-    body_params: Annotated[dict[str, Any] | None, Field(title="Key-value pairs used to populate template")]
-    template_name: Annotated[
-        str | None,
-        Field(title="Email template name", description="Template will be populated with data from 'body_params'"),
-    ]
-    subtype: Annotated[MessageType, Field(title="Message type")]
+    recipients: Annotated[list[EmailStr], Field(title="List of recipients emails", nullable=False)]
+    subject: Annotated[str, Field(title="Message subject", nullable=True)]
+    body: Annotated[str, Field(title="Fully rendered email body", nullable=False)]
+    subtype: Annotated[MessageType, Field(title="Message type", nullable=False)]
 
 
 class EmailOutboxMessage(BaseDocument):
@@ -50,3 +46,13 @@ class EmailOutboxMessage(BaseDocument):
     class Settings(BaseDocumentSettings):
         name = "outbox_emails"
         timeseries = _timeseries_settings("created_at")
+
+    @classmethod
+    def create_email(
+        cls,
+        recipients: Annotated[list[EmailStr], Field(title="List of recipients emails")],
+        subject: Annotated[str | None, Field(title="Message subject")],
+        body: Annotated[bytes, Field(title="Fully rendered email body")],
+        subtype: Annotated[MessageType, Field(title="Message type")],
+    ) -> "EmailOutboxMessage":
+        return cls(email=EmailBase(recipients=recipients, subject=subject, body=body, subtype=subtype))

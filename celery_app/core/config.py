@@ -5,7 +5,7 @@ from typing import Literal
 from urllib.parse import urljoin
 
 from fastapi_mail import ConnectionConfig
-from jinja2 import Environment, FileSystemLoader
+from jinja2 import Environment, FileSystemLoader, select_autoescape
 from pydantic import MongoDsn, SecretStr, Field, EmailStr, ConfigDict, AnyUrl, DirectoryPath
 from pydantic_settings import SettingsConfigDict, BaseSettings
 
@@ -32,13 +32,16 @@ class BaseConfig(BaseSettings):
 
 
 class ResourceSettings(BaseConfig, env_prefix="CELERY_RESOURCES_"):
-    jinja_templates_autoescape: bool
     jinja_templates_auto_reload: bool
-    bookstore_api_url: AnyUrl
     base_url: AnyUrl
     jinja_templates_enable_async: bool
     jinja_templates_optimized: bool
+    jinja_templates_autoescape: bool
     jinja_templates_cache_size: int
+    jinja_templates_trim_blocks: bool
+    jinja_templates_lstrip_blocks: bool
+    jinja_templates_newline_sequence: Literal["\n", "\r\n", "\r"]
+    jinja_templates_keep_trailing_newline: bool
 
     @property
     def root_dir(self) -> Path:
@@ -69,21 +72,30 @@ class ResourceSettings(BaseConfig, env_prefix="CELERY_RESOURCES_"):
         return AnyUrl(urljoin(self.base_url.unicode_string(), "static/fonts/JetBrainsMono-ExtraBold.woff2"))
 
     @property
-    def bookstore_mail_logo_url(self) -> AnyUrl:
-        return AnyUrl(urljoin(self.base_url.unicode_string(), "static/images/logo.png"))
-
-    @property
     def jinja_env(self) -> Environment:
         env = Environment(
-            autoescape=self.jinja_templates_autoescape,
-            auto_reload=self.jinja_templates_auto_reload,
+            trim_blocks=self.jinja_templates_trim_blocks,
+            lstrip_blocks=self.jinja_templates_lstrip_blocks,
+            newline_sequence=self.jinja_templates_newline_sequence,
+            keep_trailing_newline=self.jinja_templates_keep_trailing_newline,
             optimized=self.jinja_templates_optimized,
-            enable_async=self.jinja_templates_enable_async,
-            cache_size=self.jinja_templates_cache_size,
+            autoescape=self.jinja_templates_autoescape,
             loader=FileSystemLoader(searchpath=self.mail_templates_dir),
+            cache_size=self.jinja_templates_cache_size,
+            auto_reload=self.jinja_templates_auto_reload,
+            enable_async=self.jinja_templates_enable_async,
         )
-        env.globals.update(get_settings=get_settings)
+        env.globals.update(
+            {
+                "font_jet_brains_regular_url": self.jetbrains_mono_regular_font_url,
+                "font_jet_brains_bold_url": self.jetbrains_mono_extra_bold_font_url,
+                "fetch_image_by_name": self.fetch_image_by_name,
+            }
+        )
         return env
+
+    def fetch_image_by_name(self, name: str) -> AnyUrl:
+        return AnyUrl(urljoin(self.base_url.unicode_string(), f"static/images/{name}"))
 
 
 class LoggingSettings(BaseConfig, env_prefix="CELERY_LOGGING_"):

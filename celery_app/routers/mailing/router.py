@@ -7,24 +7,28 @@ from starlette import status
 from starlette.requests import Request
 from starlette.responses import HTMLResponse
 
-from db import get_session, EmailOutboxMessage, EmailBase
-from .models import EmailSchema
+from db import get_session, EmailOutboxMessage
 from .funcs import templates, extract_template_variables
+from .models import EmailSchema
 
 mail_router = APIRouter(
     prefix="/tasks/mail", tags=["mail"], include_in_schema=True, default_response_class=ORJSONResponse
 )
 
 
-@mail_router.post("/add_to_queue", response_model=EmailBase)
+@mail_router.post("/add_to_queue", response_class=HTMLResponse)
 async def add_mail_to_queue(
+    request: Request,
     message: Annotated[EmailSchema, Depends(EmailSchema.create_schema)],
     session: Annotated[AsyncIOMotorClientSession, Depends(get_session)],
-) -> Annotated[EmailBase, ORJSONResponse]:
-    outbox_mail = EmailOutboxMessage(email=message.model_dump())
+) -> HTMLResponse:
+    rendered_message = await message.dump_message()
+
+    outbox_mail = EmailOutboxMessage.create_email(**rendered_message)
 
     await outbox_mail.insert(session=session)
-    return ORJSONResponse(status_code=status.HTTP_201_CREATED, content={"mail": outbox_mail.model_dump(mode="json")})
+
+    return HTMLResponse(content=message.body, status_code=status.HTTP_202_ACCEPTED)
 
 
 @mail_router.get("/templates", response_model=list[str])

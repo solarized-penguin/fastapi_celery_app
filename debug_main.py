@@ -1,11 +1,15 @@
 import logging
-import asyncio
+
+# import asyncio
 import uvicorn
 
-from clients import Mailer, MailMessage
-from core import get_settings
+# from clients import Mailer, MailMessage
+# from core import get_settings
 
 if __name__ == "__main__":
+    import nest_asyncio
+
+    nest_asyncio.apply()
     # print("Running with settings: ", get_settings().model_dump_json(indent=2))
     #
     # print(
